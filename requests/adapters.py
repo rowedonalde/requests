@@ -120,10 +120,10 @@ class HTTPAdapter(BaseAdapter):
 
         if proxy:
             proxy = prepend_scheme_if_needed(proxy, scheme)
-            if not scheme in self.proxy_manager:
-                self.proxy_manager[scheme] = proxy_from_url(proxy)
+            if not proxy in self.proxy_manager:
+                self.proxy_manager[proxy] = proxy_from_url(proxy)
 
-            conn = self.proxy_manager[scheme].connection_from_url(url)
+            conn = self.proxy_manager[proxy].connection_from_url(url)
         else:
             conn = self.poolmanager.connection_from_url(url)
 
