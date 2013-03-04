@@ -51,6 +51,7 @@ class HTTPAdapter(BaseAdapter):
         super(HTTPAdapter, self).__init__()
 
         self.init_poolmanager(pool_connections, pool_maxsize)
+        self.proxy_manager = dict()
 
     def init_poolmanager(self, connections, maxsize):
         self.poolmanager = PoolManager(num_pools=connections, maxsize=maxsize)
@@ -114,11 +115,15 @@ class HTTPAdapter(BaseAdapter):
     def get_connection(self, url, proxies=None):
         """Returns a connection for the given URL."""
         proxies = proxies or {}
-        proxy = proxies.get(urlparse(url).scheme)
+        scheme = urlparse(url).scheme
+        proxy = proxies.get(scheme)
 
         if proxy:
-            proxy = prepend_scheme_if_needed(proxy, urlparse(url).scheme)
-            conn = proxy_from_url(proxy).connection_from_url(url)
+            proxy = prepend_scheme_if_needed(proxy, scheme)
+            if not scheme in self.proxy_manager:
+                self.proxy_manager[scheme] = proxy_from_url(proxy)
+
+            conn = self.proxy_manager[scheme].connection_from_url(url)
         else:
             conn = self.poolmanager.connection_from_url(url)
 
