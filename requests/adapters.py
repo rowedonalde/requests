@@ -11,7 +11,7 @@ and maintain connections.
 import socket
 
 from .models import Response
-from .packages.urllib3.poolmanager import PoolManager, ProxyManager
+from .packages.urllib3.poolmanager import PoolManager, proxy_from_url
 from .packages.urllib3.response import HTTPResponse
 from .compat import urlparse, basestring, urldefrag, unquote
 from .utils import (DEFAULT_CA_BUNDLE_PATH, get_encoding_from_headers,
@@ -56,6 +56,7 @@ class HTTPAdapter(BaseAdapter):
         self._pool_maxsize = pool_maxsize
 
         self.init_poolmanager(pool_connections, pool_maxsize)
+        self.proxy_manager = dict()
 
     def __getstate__(self):
         return dict((attr, getattr(self, attr, None)) for attr in
@@ -133,11 +134,15 @@ class HTTPAdapter(BaseAdapter):
     def get_connection(self, url, proxies=None):
         """Returns a connection for the given URL."""
         proxies = proxies or {}
-        proxy = proxies.get(urlparse(url).scheme)
+        scheme = urlparse(url).scheme
+        proxy = proxies.get(scheme)
 
         if proxy:
-            proxy = prepend_scheme_if_needed(proxy, urlparse(url).scheme)
-            conn = ProxyManager(self.poolmanager.connection_from_url(proxy))
+            proxy = prepend_scheme_if_needed(proxy, scheme)
+            if not proxy in self.proxy_manager:
+                self.proxy_manager[proxy] = proxy_from_url(proxy)
+
+            conn = self.proxy_manager[proxy].connection_from_url(url)
         else:
             conn = self.poolmanager.connection_from_url(url)
 
