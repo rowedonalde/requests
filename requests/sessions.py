@@ -322,6 +322,9 @@ class Session(SessionRedirectMixin):
 
         # Persist cookies.
         self.cookies.update(resp.cookies)
+        
+        # Response manipulation hook.
+        self.response = dispatch_hook('response', hooks, resp)
 
         return resp
 
